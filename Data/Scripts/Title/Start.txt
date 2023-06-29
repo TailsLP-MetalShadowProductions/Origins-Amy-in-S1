@@ -1,0 +1,902 @@
+// ----------------------------------
+// RSDK Project: Sonic 1
+// Script Description: Start Message Object
+// Script Author: Christian Whitehead/Simon Thomley
+// Unpacked by Rubberduckycooly's script unpacker
+// ----------------------------------
+
+// ========================
+// Aliases
+// ========================
+
+private alias object.value0 : object.timer
+// Not sure why it skips from 0 to 4, guess there must've been a revision or smth
+private alias object.value4 : object.attractTimer
+
+private alias object.value1 : current.selection
+private alias object.value2 : current.character
+
+private alias 0 : START_FLASH
+private alias 1 : START_STARTGAME
+private alias 2 : START_STARTLVLSEL
+private alias 3 : START_STARTLVLSEL_OLD
+private alias 4 : START_STARTATTRACT
+private alias 5 : START_NOTIFYCALLBACK
+private alias 6 : START_WAITFORCALLBACK
+private alias 7 : START_FADETOEXIT
+private alias 8 : START_EXIT
+private alias 9 : START_FILESELECT_INT
+private alias 10: START_FILESELECT
+private alias 11: START_STARTSAVEGAME
+private alias 12: START_CHARSELECT
+
+
+// Game Modes Aliases
+private alias 0 : MODE_NOSAVE
+private alias 1 : MODE_SAVEGAME
+private alias 2 : MODE_TIMEATTACK
+
+
+
+public value file_slot1_xpos 	= 0
+public value file_slot1_ypos 	= 0
+public value file_slot2_xpos 	= 0
+public value file_slot2_ypos 	= 0
+public value file_slot3_xpos 	= 0
+public value file_slot3_ypos 	= 0
+public value file_slot4_xpos 	= 0
+public value file_slot4_ypos 	= 0
+
+public value delete_file 	= 0
+public value char_select_active	= 0
+public value File_select_active	= 0
+
+// ========================
+// Events
+// ========================
+
+private function Character_Select
+
+		temp2 = keyPress[0].ButtonA
+		temp2 |= keyPress[0].ButtonC
+		temp2 |= keyPress[0].start
+		if temp2 == 1
+			object.state = START_STARTGAME
+			PlaySfx(SfxName[Menu Select], false)
+		endif
+		if keyPress[0].ButtonB == 1
+			object.state = START_FILESELECT
+			PlaySfx(SfxName[Menu Back], false)
+		endif
+		if keyPress[0].down == 1
+			if current.character < 6
+				current.character ++
+			else
+				current.character = 0
+			endif
+			PlaySfx(SfxName[Menu Move], 0)
+		endif
+		if keyPress[0].up == 1	
+			if current.character > 0
+				current.character --
+			else
+				current.character = 6
+			endif
+			PlaySfx(SfxName[Menu Move], 0)
+		endif
+end function
+private function File_Select
+		if keyPress[0].down == 1
+			if current.selection < 4
+				current.selection += 2
+			else
+				if current.selection == 5
+					current.selection = 1
+				else
+					current.selection = 0
+				endif
+			endif
+			PlaySfx(SfxName[Menu Move], 0)
+		endif
+		if keyPress[0].up == 1	
+			if current.selection > 1
+				current.selection -= 2
+			else
+				if current.selection == 0
+					current.selection = 4
+				else
+					current.selection = 5
+				endif
+			endif
+			PlaySfx(SfxName[Menu Move], 0)
+		endif
+
+		temp2 = keyPress[0].left
+		temp2 |= keyPress[0].right
+		if temp2 == 1
+			switch current.selection
+			case 0
+			case 2
+			case 4
+				current.selection += 1
+				break
+			case 1
+			case 3
+			case 5
+				current.selection -= 1
+				break
+			endswitch
+			PlaySfx(SfxName[Menu Move], 0)
+		endif
+
+		temp2 = keyPress[0].ButtonA
+		temp2 |= keyPress[0].ButtonC
+		temp2 |= keyPress[0].start
+		if temp2 == 1
+			if current.selection == 5
+				delete_file ^= 1
+				PlaySfx(SfxName[Bonus Points], false)
+			endif
+			if delete_file == 0
+				if current.selection < 4
+					PlaySfx(SfxName[Menu Select], false)
+
+					options.saveSlot = current.selection
+
+					arrayPos1 = options.saveSlot
+					arrayPos1 <<= 3
+					//arrayPos1 += 3
+					if saveRAM[arrayPos1] == 0
+						options.gameMode = MODE_SAVEGAME
+						object.state = START_CHARSELECT
+					else
+						options.gameMode = MODE_SAVEGAME
+						object.state = START_STARTSAVEGAME
+					endif
+
+				else
+					if current.selection == 4
+						object.state = START_STARTLVLSEL
+					endif
+				endif
+			else
+				if current.selection < 4
+					PlaySfx(SfxName[Destroy], false)
+					arrayPos1 = current.selection
+					arrayPos1 <<= 3
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					arrayPos1 ++
+					saveRAM[arrayPos1] = 0
+					WriteSaveRAM()
+					delete_file = 0
+				endif
+				
+			endif
+		endif
+	
+end function
+
+event ObjectUpdate
+	switch object.state
+	case START_FLASH
+		stage.player2enabled = 0
+		char_select_active = 0
+		options.stageSelectFlag = 0
+		CheckTouchRect(0, 0, screen.xsize, screen.ysize)
+		
+#platform: USE_STANDALONE
+		if keyPress[0].start == true
+			checkResult = true
+		end if
+
+		if keyPress[0].buttonA == true
+			checkResult = true
+		end if
+#endplatform
+
+		if keyPress[0].buttonB == true
+			checkResult = true
+		end if
+
+#platform: USE_STANDALONE
+		if keyPress[0].buttonC == true
+			checkResult = true
+		end if
+#endplatform
+
+#platform: USE_ORIGINS
+		if input.pressButton == true
+			checkResult = true
+		end if
+#endplatform
+
+		if checkResult > -1
+#platform: USE_STANDALONE
+			if options.stageSelectFlag == true
+				if checkResult > 0 // This is a fancy way of seeing if two (or more) fingers are on the screen
+					object.state = START_STARTLVLSEL
+				else
+					object.state = START_FILESELECT_INT
+				end if
+			else
+				object.state = START_FILESELECT_INT
+			end if
+
+			PlaySfx(SfxName[Menu Select], false)
+			StopMusic()
+#endplatform
+			
+#platform: USE_ORIGINS
+			if options.stageSelectFlag == true
+				if checkResult > 0
+					object.state = START_STARTLVLSEL
+					StopMusic()
+				else
+					object.state = START_NOTIFYCALLBACK
+				end if
+			else
+				if keyPress[0].buttonB == true
+					CallNativeFunction2(NotifyCallback, NOTIFY_BACK_TO_MAINMENU, 1)
+				else
+					object.state = START_NOTIFYCALLBACK
+				end if
+			end if
+#endplatform
+		else
+			object.attractTimer++
+			if object.attractTimer == 360
+				object.state = START_STARTATTRACT
+			end if
+		end if
+		break
+
+	case START_FILESELECT_INT
+		ReadSaveRAM()
+		object.timer += 8
+		if object.timer >= 180
+			object.state = START_FILESELECT
+			object.timer = 0
+			current.selection = 0
+		end if
+		break
+
+	case START_FILESELECT
+		char_select_active = 1
+		ReadSaveRAM()
+		CallFunction(File_Select)
+		break
+
+
+	case START_CHARSELECT
+		char_select_active = 1
+		CallFunction(Character_Select)
+		ReadSaveRAM()
+		break
+
+	case START_STARTSAVEGAME
+		char_select_active = 0
+		object.timer += 8
+		if object.timer == 320
+			options.attractMode   = false
+			lampPostID 			  = 0
+
+				
+				options.saveSlot = current.selection
+				options.gameMode = MODE_SAVEGAME
+				options.superStates = 1
+
+				arrayPos1 = options.saveSlot
+				arrayPos1 <<= 3
+				stage.playerListPos = saveRAM[arrayPos1]
+				arrayPos1 ++
+				player.lives = saveRAM[arrayPos1]
+				arrayPos1 ++
+				player.score = saveRAM[arrayPos1]
+				arrayPos1 ++
+				player.scoreBonus = saveRAM[arrayPos1]
+				arrayPos1 ++
+				stage.listPos = saveRAM[arrayPos1]
+				stage.listPos --
+				arrayPos1 ++
+				specialStage.emeralds = saveRAM[arrayPos1]
+				arrayPos1 ++
+				specialStage.listPos = saveRAM[arrayPos1]
+
+
+			if stage.listPos >= 0x80
+				stage.listPos = saveRAM[arrayPos1]
+				stage.activeList 	  = SPECIAL_STAGE
+			else
+				stage.activeList 	  = REGULAR_STAGE
+			endif
+			LoadStage()
+		end if
+		SetScreenFade(0x00, 0x00, 0x00, object.timer)
+		break
+
+	case START_STARTGAME
+		char_select_active = 0
+		object.timer += 8
+		if object.timer == 320
+			stage.playerListPos = current.character
+			options.attractMode   = false
+			player.lives 		  = 3
+			player.continues 	  = 0
+			player.score 		  = 0
+			player.scoreBonus 	  = 50000
+			lampPostID 			  = 0
+			specialStage.listPos  = 0
+			specialStage.emeralds = 0
+			specialStage.nextZone = 0
+
+			// New Game - to GHZ1 you go!
+			stage.activeList 	  = REGULAR_STAGE
+			stage.listPos 		  = 0
+			options.superStates = 1
+			if options.gameMode == MODE_SAVEGAME
+				arrayPos1 = options.saveSlot
+				arrayPos1 <<= 3
+				saveRAM[arrayPos1] = stage.playerListPos
+				arrayPos1 ++
+				saveRAM[arrayPos1] = player.lives
+				arrayPos1 += 2
+				saveRAM[arrayPos1] = player.scoreBonus 
+				arrayPos1 ++
+				saveRAM[arrayPos1] = 1
+				WriteSaveRAM()
+			endif
+
+			LoadStage()
+		end if
+		SetScreenFade(0x00, 0x00, 0x00, object.timer)
+		break
+
+	case START_STARTLVLSEL
+		char_select_active = 0
+		object.timer += 8
+		if object.timer == 320
+			options.attractMode   = false
+			player.lives 		  = 3
+			player.continues 	  = 0
+			player.score 		  = 0
+			player.scoreBonus 	  = 50000
+			lampPostID 			  = 0
+			specialStage.listPos  = 0
+			specialStage.emeralds = 0
+			specialStage.nextZone = 0
+
+			// Level Select!!
+			stage.activeList 	  = PRESENTATION_STAGE
+			stage.listPos 		  = 5
+
+			LoadStage()
+		end if
+		SetScreenFade(0, 0, 0, object.timer)
+		break
+
+	case START_STARTLVLSEL_OLD // Unused state
+		object.timer += 8
+		if object.timer == 320
+			// The Continue scene...?
+			// This state seems to be a leftover from CD, where its level select code was pretty much the same as this, including going to stage list pos 4
+			options.attractMode = false
+			stage.listPos 		= 4
+			LoadStage()
+		end if
+		SetScreenFade(0, 0, 0, object.timer)
+		break
+
+	case START_STARTATTRACT
+		char_select_active = 0
+		object.timer += 8
+		if object.timer == 320
+			player.lives 		  = 3
+			player.continues 	  = 0
+			player.score 		  = 0
+			player.scoreBonus 	  = 50000
+			lampPostID 			  = 0
+			specialStage.listPos  = 0
+			specialStage.emeralds = 0
+			specialStage.nextZone = 0
+
+			if attract.stage == 3
+				stage.activeList = SPECIAL_STAGE
+				stage.listPos 	 = 0
+			else
+				stage.activeList = REGULAR_STAGE
+				stage.listPos 	 = attract.stage
+				stage.listPos 	*= 3
+			end if
+			attract.stage++
+			attract.stage &= 3
+
+			options.attractMode = true
+			credits.screen 		= 0
+			LoadStage()
+		end if
+		SetScreenFade(0x00, 0x00, 0x00, object.timer)
+		break
+
+#platform:USE_ORIGINS
+	case START_NOTIFYCALLBACK
+		game.continueFlag = false
+		game.callbackResult = -1
+		if game.playMode == BOOT_PLAYMODE_CLASSIC
+			CallNativeFunction2(NotifyCallback, NOTIFY_CHARACTER_SELECT, 1)
+		else
+			CallNativeFunction2(NotifyCallback, NOTIFY_CHARACTER_SELECT, 0)
+		end if
+		object.state = START_WAITFORCALLBACK
+		break
+		
+	case START_WAITFORCALLBACK
+		if game.callbackResult > 0
+			if game.continueFlag != false
+				game.continueFlag = false
+				object.state = START_FADETOEXIT
+			else
+				object.state = START_STARTGAME
+			end if
+			object.timer = 0
+			StopMusic()
+		else
+			if game.callbackResult == 0
+				object.state = START_FLASH
+			end if
+		end if
+		break
+		
+	case START_FADETOEXIT
+		object.timer += 4
+		if object.timer >= 384
+			object.state = START_EXIT
+		end if
+		SetScreenFade(0, 0, 0, object.timer)
+		break
+		
+	case START_EXIT
+		engine.state = RESET_GAME
+		SetScreenFade(0, 0, 0, 255)
+		break
+#endplatform
+
+	end switch
+end event
+
+
+event ObjectDraw
+	object.animationTimer++
+	if object.animationTimer > 59
+		object.animationTimer = 0
+	end if
+
+	if object.animationTimer > 29
+		DrawSpriteScreenXY(0, object.xpos, object.ypos)
+	end if
+
+	if object.state == START_FILESELECT_INT
+		DrawRect(0, 0, screen.xsize, screen.ysize, 128, 128, 128, object.timer)
+	endif
+
+
+	if char_select_active == 1
+		DrawRect(0, 0, screen.xsize, screen.ysize, 128, 128, 128, 180)
+
+-------------------File Box----------------------------------
+		file_slot1_xpos = screen.xcenter
+		file_slot1_xpos -= 70
+		file_slot1_ypos = screen.ycenter
+		file_slot1_ypos -= 52
+
+		if current.selection != 0
+			DrawSpriteScreenXY(1, file_slot1_xpos, file_slot1_ypos)
+		else
+			if delete_file == 0
+				DrawSpriteScreenXY(2, file_slot1_xpos, file_slot1_ypos)
+			else
+				DrawSpriteScreenXY(42, file_slot1_xpos, file_slot1_ypos)
+			endif
+		endif
+		file_slot2_xpos = screen.xcenter
+		file_slot2_xpos += 70
+		file_slot2_ypos = screen.ycenter
+		file_slot2_ypos -= 52
+
+		if current.selection != 1
+			DrawSpriteScreenXY(1, file_slot2_xpos, file_slot2_ypos)
+		else
+			if delete_file == 0
+				DrawSpriteScreenXY(2, file_slot2_xpos, file_slot2_ypos)
+			else
+				DrawSpriteScreenXY(42, file_slot2_xpos, file_slot2_ypos)
+			endif
+		endif
+		file_slot3_xpos = screen.xcenter
+		file_slot3_xpos -= 70
+		file_slot3_ypos = screen.ycenter
+		file_slot3_ypos += 6
+
+		if current.selection != 2
+			DrawSpriteScreenXY(1, file_slot3_xpos, file_slot3_ypos)
+		else
+			if delete_file == 0
+				DrawSpriteScreenXY(2, file_slot3_xpos, file_slot3_ypos)
+			else
+				DrawSpriteScreenXY(42, file_slot3_xpos, file_slot3_ypos)
+			endif
+		endif
+		file_slot4_xpos = screen.xcenter
+		file_slot4_xpos += 70
+		file_slot4_ypos = screen.ycenter
+		file_slot4_ypos += 6
+
+		if current.selection != 3
+			DrawSpriteScreenXY(1, file_slot4_xpos, file_slot4_ypos)
+		else
+			if delete_file == 0
+				DrawSpriteScreenXY(2, file_slot4_xpos, file_slot4_ypos)
+			else
+				DrawSpriteScreenXY(42, file_slot4_xpos, file_slot4_ypos)
+			endif
+		endif
+
+		temp0 = screen.xcenter
+		temp0 -= 70
+		temp1 = file_slot4_ypos
+		temp1 += 58
+
+		if current.selection != 4
+			DrawSpriteScreenXY(3, temp0, temp1)
+		else
+			DrawSpriteScreenXY(4, temp0, temp1)
+		endif
+
+		temp0 = screen.xcenter
+		temp0 += 70
+
+		if current.selection != 5
+			if delete_file == 1
+				DrawSpriteScreenXY(6, temp0, temp1)
+			else
+				DrawSpriteScreenXY(5, temp0, temp1)
+			endif
+		else
+			DrawSpriteScreenXY(6, temp0, temp1)
+		endif
+
+-------------------Box Content----------------------------------
+arraypos2 = 0
+while arraypos2 < 4
+		switch arraypos2
+		case 0
+			temp0 = file_slot1_xpos
+			temp1 = file_slot1_ypos
+			break
+		case 1
+			temp0 = file_slot2_xpos
+			temp1 = file_slot2_ypos
+			break
+		case 2
+			temp0 = file_slot3_xpos
+			temp1 = file_slot3_ypos
+			break
+		case 3
+			temp0 = file_slot4_xpos
+			temp1 = file_slot4_ypos
+			break
+		endswitch
+	
+//Player
+		arrayPos1 = arraypos2
+		arrayPos1 *= 8
+		temp2 = saveRAM[arrayPos1]
+		temp0 -= 52
+		temp1 -= 10
+
+		arrayPos0 = arrayPos1
+		//arrayPos0 += 3
+	if saveRAM[arrayPos0] == 0
+		if object.state != START_CHARSELECT
+			DrawSpriteScreenXY(11, temp0, temp1)
+		else
+			if arraypos2 == current.selection
+				switch current.character
+				case 0
+				case 1
+				case 2
+				case 3
+					temp2 = 7
+					temp2 += current.character
+					DrawSpriteScreenXY(temp2, temp0, temp1)
+					break
+				case 4
+					DrawSpriteScreenXY(7, temp0, temp1)
+					temp0 += 18
+					DrawSpriteScreenXY(8, temp0, temp1)
+					temp0 -= 18
+					break
+				case 5
+					DrawSpriteScreenXY(9, temp0, temp1)
+					temp0 += 18
+					DrawSpriteScreenXY(8, temp0, temp1)
+					temp0 -= 18
+					break
+				case 6
+					DrawSpriteScreenXY(10, temp0, temp1)
+					temp0 += 18
+					DrawSpriteScreenXY(8, temp0, temp1)
+					temp0 -= 18
+					break
+				endswitch
+			else
+				DrawSpriteScreenXY(11, temp0, temp1)
+			endif
+		endif
+
+	else
+		switch temp2
+		case 0
+		case 1
+		case 2
+		case 3
+			temp2 += 7
+			DrawSpriteScreenXY(temp2, temp0, temp1)
+			break
+		case 4
+			DrawSpriteScreenXY(7, temp0, temp1)
+			temp0 += 18
+			DrawSpriteScreenXY(8, temp0, temp1)
+			temp0 -= 18
+			break
+		case 5
+			DrawSpriteScreenXY(9, temp0, temp1)
+			temp0 += 18
+			DrawSpriteScreenXY(8, temp0, temp1)
+			temp0 -= 18
+			break
+		case 6
+			DrawSpriteScreenXY(10, temp0, temp1)
+			temp0 += 18
+			DrawSpriteScreenXY(8, temp0, temp1)
+			temp0 -= 18
+			break
+		endswitch
+	endif
+//Lifes
+		arrayPos1++
+		temp2 = saveRAM[arrayPos1]
+		temp0 += 36
+		temp1 += 16
+	if saveRAM[arrayPos0] != 0
+		DrawSpriteScreenXY(12, temp0, temp1)
+	else
+		temp1 -= 16
+		if arraypos2 == current.selection
+			if delete_file == 0
+				DrawSpriteScreenXY(43, temp0, temp1)
+			endif
+		endif
+		temp1 += 16
+		
+	endif
+		temp0 += 6
+		temp1 -= 12
+	if saveRAM[arrayPos0] != 0
+		DrawNumbers(13, temp0, temp1, temp2, 2, 8, true)
+	endif
+
+//Score
+		arrayPos1++
+		temp2 = saveRAM[arrayPos1]
+		temp0 += 60
+		temp1 -= 16
+		DrawNumbers(13, temp0, temp1, temp2, 8, 8, true)
+
+//Stage
+		arrayPos1 += 2
+		temp2 = saveRAM[arrayPos1]
+		temp2 -= 1
+		temp2 /= 3
+		temp2 += 23
+
+		temp0 -= 24
+		temp1 += 20
+	if saveRAM[arrayPos0] != 0
+		if saveRAM[arrayPos1] >= 0x14
+			if saveRAM[arrayPos1] == 0x14
+				temp2 ++
+			else
+				temp2 = 44
+			endif
+		endif
+		DrawSpriteScreenXY(temp2, temp0, temp1)
+	endif
+
+		temp2 = saveRAM[arrayPos1]
+		temp2 -= 1
+		temp2 %= 3
+		temp2 += 31
+
+		temp0 += 24
+	if saveRAM[arrayPos0] != 0
+		if saveRAM[arrayPos1] < 0x12
+			DrawSpriteScreenXY(temp2, temp0, temp1)
+		endif
+	endif
+
+//Emerald Count
+		arrayPos1 ++
+		temp0 -= 101
+		temp1 += 16
+		GetBit(temp3, saveRAM[arrayPos1], 0)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(35, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 1)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(36, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 2)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(37, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 3)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(38, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 4)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(39, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 5)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(40, temp0, temp1)
+		endif
+
+		temp0 += 17
+		GetBit(temp3, saveRAM[arrayPos1], 6)
+		if temp3 == 0
+			DrawSpriteScreenXY(34, temp0, temp1)
+		else
+			DrawSpriteScreenXY(41, temp0, temp1)
+		endif
+	arraypos2 ++
+loop
+
+	
+	endif
+end event
+
+
+event ObjectStartup
+#platform: USE_ORIGINS
+	// Level Select?
+	CallNativeFunction2(NotifyCallback, NOTIFY_LEVEL_SELECT_MENU, 0)
+#endplatform
+	
+	LoadSpriteSheet("Title/Title.gif")
+	
+	// In the original S1 releases this was instead a engine.language switch for different languages, although all cases led to the same path
+	
+	switch engine.deviceType
+	case STANDARD
+		SpriteFrame(-48, -4, 96, 8, 1, 283) 	// Press Start #00
+		break
+
+	case MOBILE
+		SpriteFrame(-56, -4, 112, 8, 1, 292) 	// Press Start #00
+		break
+		
+	end switch
+
+	SpriteFrame(-62, -25, 124, 50, 663, 274) // File Box #01
+	SpriteFrame(-62, -25, 124, 50, 788, 223) // File Box Selected #02
+
+	SpriteFrame(-62, -25, 124, 29, 663, 325) // No Save Box #03
+	SpriteFrame(-62, -25, 124, 29, 788, 274) // No Save Box Selected #04
+
+	SpriteFrame(-62, -25, 124, 29, 663, 355) // Delete Box #05
+	SpriteFrame(-62, -25, 124, 29, 788, 304) // Delete Box Selected #06
+
+
+	SpriteFrame(-7, -11, 16, 23, 611, 212) // Sonic #07
+	SpriteFrame(-7, -11, 16, 23, 629, 212) // Tails #08
+	SpriteFrame(-7, -11, 16, 23, 646, 212) // Knuckles #09
+	SpriteFrame(-7, -10, 17, 22, 611, 236) // Amy #10
+	SpriteFrame(-7, -11, 16, 23, 646, 236) // Blank #11
+
+	SpriteFrame(-8, -11, 7, 7, 577, 242) // x #12
+
+	SpriteFrame(0, 0, 8, 8, 752, 137) // 0 #13
+	SpriteFrame(0, 0, 8, 8, 761, 137) // 1 #14
+	SpriteFrame(0, 0, 8, 8, 770, 137) // 2 #15
+	SpriteFrame(0, 0, 8, 8, 779, 137) // 3 #16
+	SpriteFrame(0, 0, 8, 8, 788, 137) // 4 #17
+	SpriteFrame(0, 0, 8, 8, 797, 137) // 5 #18
+	SpriteFrame(0, 0, 8, 8, 806, 137) // 6 #19
+	SpriteFrame(0, 0, 8, 8, 815, 137) // 7 #20
+	SpriteFrame(0, 0, 8, 8, 824, 137) // 8 #21
+	SpriteFrame(0, 0, 8, 8, 833, 137) // 9 #22
+
+	SpriteFrame(-12, -3, 24, 7, 577, 259) // GHZ #23
+	SpriteFrame(-12, -3, 24, 7, 577, 267) //  MZ #24
+	SpriteFrame(-12, -3, 24, 7, 577, 275) // SYZ #25
+	SpriteFrame(-12, -3, 24, 7, 577, 283) //  LZ #26
+	SpriteFrame(-12, -3, 24, 7, 602, 267) // SLZ #27
+	SpriteFrame(-12, -3, 24, 7, 602, 275) // SBZ #28
+	SpriteFrame(-12, -3, 40, 7, 602, 283) //  FZ #29
+	SpriteFrame(-28, -3, 64, 7, 577, 291) // COMPLETE #30
+
+	SpriteFrame(-8, -3, 16, 7, 602, 259) // Act 1 #31
+	SpriteFrame(-8, -3, 16, 7, 619, 259) // Act 2 #32
+	SpriteFrame(-8, -3, 16, 7, 627, 267) // Act 3 #33
+
+	SpriteFrame(-8, -8, 16, 16, 645, 299) // Blank Emerald #34
+	SpriteFrame(-8, -8, 16, 16, 577, 316) // Cyan Emerald #35
+	SpriteFrame(-8, -8, 16, 16, 628, 299) // Red Emerald #36
+	SpriteFrame(-8, -8, 16, 16, 594, 299) // Pink Emerald #37
+	SpriteFrame(-8, -8, 16, 16, 594, 316) // Blue Emerald #38
+	SpriteFrame(-8, -8, 16, 16, 577, 299) // Yellow Emerald #39
+	SpriteFrame(-8, -8, 16, 16, 611, 299) // Green Emerald #40
+	SpriteFrame(-8, -8, 16, 16, 628, 316) // Grey Emerald #41
+
+	SpriteFrame(-62, -25, 124, 50, 788, 334) // Delete File Box #42
+
+	SpriteFrame(-5, -6, 10, 13, 629, 236) // Arrows #43
+
+	SpriteFrame(-24, -3, 56, 7, 520, 303) // SPECIAL #44
+end event
+
+
+// ========================
+// Editor Events
+// ========================
+
+event RSDKDraw
+	DrawSprite(0)
+end event
+
+
+event RSDKLoad
+	LoadSpriteSheet("Title/Title.gif")
+	SpriteFrame(-48, -4, 96, 8, 1, 283) 	// Press Start #00
+
+	SpriteFrame(-48, -4, 124, 50, 663, 274) // File Box #01
+	SpriteFrame(-48, -4, 124, 50, 788, 223) // File Box Selected #01
+	
+	SetVariableAlias(ALIAS_VAR_PROPVAL, "unused")
+end event
