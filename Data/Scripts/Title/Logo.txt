@@ -1337,6 +1337,10 @@ event ObjectDraw
 	temp0 = screen.xsize
 	temp0 -= 96
 	DrawSpriteScreenXY(11, temp0, 216)
+
+
+	// Version Number
+	DrawSpriteScreenXY(46, 24, 216)
 end event
 
 
@@ -1391,6 +1395,8 @@ event ObjectStartup
 	SpriteFrame(24,  8, 72, 64, 592, 147) 		// Amy - Frame 6		- #43
 	SpriteFrame(24, -3, 76, 75, 665, 147) 		// Amy - Frame 7		- #44
 	SpriteFrame(24, -3, 78, 75, 742, 147) 		// Amy - Frame 8		- #45
+
+	SpriteFrame(0, 0, 30, 8, 259, 242) 		// Version Number		- #46
 
 	// Setup Player Palette Colours
 	temp0 = 208
